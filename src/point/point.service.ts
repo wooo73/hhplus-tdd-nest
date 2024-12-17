@@ -69,11 +69,37 @@ export class PointService {
         }
     }
 
-    async selectUserPointHistory(userId: number) {
-        return await this.historyDb.selectAllByUserId(userId);
+    async selectUserPoint(userId: number) {
+        try {
+            if (!userId || (Number.isInteger(userId) && userId < 0)) {
+                throw new BadRequestException('유저 ID를 확인해주세요.');
+            }
+
+            const user = await this.userDb.selectById(userId);
+            if (!user) {
+                throw new NotFoundException('유저 정보를 찾을 수 없습니다.');
+            }
+
+            return user;
+        } catch (err) {
+            throw err;
+        }
     }
 
-    async selectUserPoint(userId: number) {
-        return await this.userDb.selectById(userId);
+    async selectUserPointHistory(userId: number) {
+        try {
+            if (!userId || (Number.isInteger(userId) && userId <= 0)) {
+                throw new BadRequestException('유저 ID를 확인해주세요.');
+            }
+
+            const user = await this.userDb.selectById(userId);
+            if (!user) {
+                throw new NotFoundException('유저 정보를 찾을 수 없습니다.');
+            }
+
+            return await this.historyDb.selectAllByUserId(userId);
+        } catch (err) {
+            throw err;
+        }
     }
 }

@@ -15,6 +15,8 @@ export class PointController {
 
     /**
      * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
+     * - 유저 id 검증 -> 정수외 값 실패
+     * - 유저 조회 -> 유저 존재 여부 확인
      */
     @Get(':id')
     async point(@Param('id') id): Promise<UserPoint> {
@@ -24,6 +26,8 @@ export class PointController {
 
     /**
      * TODO - 특정 유저의 포인트 충전/이용 내역을 조회하는 기능을 작성해주세요.
+     * - 유저 id 검증 -> 정수외 값 실패
+     * - 유저 조회 -> 유저 존재 여부 확인
      */
     @Get(':id/histories')
     async history(@Param('id') id): Promise<PointHistory[]> {
