@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Mutex } from 'async-mutex';
 
 import { PointHistoryTable } from '../database/pointhistory.table';
 import { UserPointTable } from '../database/userpoint.table';
@@ -21,86 +20,65 @@ import { TransactionType } from '../point/point.model';
 
 @Injectable()
 export class PointService {
-    private lock = new Map<number, Mutex>();
     constructor(
         private readonly userDb: UserPointTable,
         private readonly historyDb: PointHistoryTable,
     ) {}
 
-    private async getLock(userId: number) {
-        if (!this.lock.has(userId)) {
-            this.lock.set(userId, new Mutex());
-        }
-        return this.lock.get(userId);
-    }
-
-    private async deleteLock(userId: number) {
-        this.lock.delete(userId);
-    }
-
     async chargePoint(userId: number, amount: number) {
         try {
-            const mutex = await this.getLock(userId);
-            return await mutex.runExclusive(async () => {
-                if (!amount || amount <= 0) {
-                    throw new BadRequestException('충전 금액을 확인해주세요.');
-                }
+            if (!amount || amount <= 0) {
+                throw new BadRequestException('충전 금액을 확인해주세요.');
+            }
 
-                const userSelect = await this.userDb.selectById(userId);
-                if (!userSelect) {
-                    throw new BadRequestException('유저 정보를 찾을 수 없습니다.');
-                }
+            const userSelect = await this.userDb.selectById(userId);
+            if (!userSelect) {
+                throw new BadRequestException('유저 정보를 찾을 수 없습니다.');
+            }
 
-                const chargePoint = amount + userSelect.point;
+            const chargePoint = amount + userSelect.point;
 
-                //TODO: 최대 보유값은 객체 멤버변수로 관리 할 것.
-                if (chargePoint >= 10_000_000) {
-                    throw new BadRequestException('보유 금액을 초과했습니다.');
-                }
+            //TODO: 최대 보유값은 객체 멤버변수로 관리 할 것.
+            if (chargePoint >= 10_000_000) {
+                throw new BadRequestException('보유 금액을 초과했습니다.');
+            }
 
-                const rowData = await this.userDb.insertOrUpdate(userId, chargePoint);
+            const rowData = await this.userDb.insertOrUpdate(userId, chargePoint);
 
-                const { CHARGE: type } = TransactionType;
+            const { CHARGE: type } = TransactionType;
 
-                await this.historyDb.insert(userId, amount, type, Date.now());
+            await this.historyDb.insert(userId, amount, type, Date.now());
 
-                return rowData;
-            });
+            return rowData;
         } catch (err) {
             throw err;
-        } finally {
-            this.deleteLock(userId);
         }
     }
 
     async usePoint(userId: number, amount: number) {
         try {
-            const mutex = await this.getLock(userId);
+            if (!amount || amount <= 0) {
+                throw new BadRequestException('사용 금액을 확인해주세요.');
+            }
 
-            return await mutex.runExclusive(async () => {
-                if (!amount || amount <= 0) {
-                    throw new BadRequestException('사용 금액을 확인해주세요.');
-                }
+            const user = await this.userDb.selectById(userId);
+            if (!user) {
+                throw new NotFoundException('유저 정보를 찾을 수 없습니다.');
+            }
 
-                const user = await this.userDb.selectById(userId);
-                if (!user) {
-                    throw new NotFoundException('유저 정보를 찾을 수 없습니다.');
-                }
+            if (amount > user.point) {
+                throw new BadRequestException('보유 금액을 확인해주세요.');
+            }
 
-                if (amount > user.point) {
-                    throw new BadRequestException('보유 금액을 확인해주세요.');
-                }
+            const remainingPoint = user.point - amount;
 
-                const remainingPoint = user.point - amount;
+            const rowData = await this.userDb.insertOrUpdate(userId, remainingPoint);
 
-                const rowData = await this.userDb.insertOrUpdate(userId, remainingPoint);
+            const { USE: type } = TransactionType;
 
-                const { USE: type } = TransactionType;
+            await this.historyDb.insert(userId, amount, type, Date.now());
 
-                await this.historyDb.insert(userId, amount, type, Date.now());
-
-                return rowData;
-            });
+            return rowData;
         } catch (err) {
             throw err;
         }

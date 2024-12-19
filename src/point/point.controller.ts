@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch, ValidationPipe } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    UseInterceptors,
+    ValidationPipe,
+} from '@nestjs/common';
+
+import { LockInterceptor } from '../interceptor/lock.interceptor';
 
 import { PointService } from './point.service';
 
@@ -42,6 +52,7 @@ export class PointController {
      *      - 이력 생성
      *      - 증가된 유저 포인트 응답
      */
+    @UseInterceptors(LockInterceptor)
     @Patch(':id/charge')
     async charge(@Param('id') id, @Body(ValidationPipe) pointDto: PointDto): Promise<UserPoint> {
         const userId = Number.parseInt(id);
@@ -59,6 +70,7 @@ export class PointController {
      *      - 이력 생성
      *      - 사용된 유저 포인트 응답
      */
+    @UseInterceptors(LockInterceptor)
     @Patch(':id/use')
     async use(@Param('id') id, @Body(ValidationPipe) pointDto: PointDto): Promise<UserPoint> {
         const userId = Number.parseInt(id);
