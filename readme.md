@@ -149,8 +149,8 @@ export class LockInterceptor implements NestInterceptor {
 }
 ```
 
-**LockInterceptor 구현:** 240e75f
-**E2E 테스트:** cad8f88
+- [**LockInterceptor 구현**](https://github.com/wooo73/hhplus-tdd-nest/commit/cad8f88ba5f40dd70fece8de2932ab58ed70958c)
+- [**E2E 테스트**](https://github.com/wooo73/hhplus-tdd-nest/commit/240e75f4c49c2680d73dcec1519a332ec430c7cf)
 
 ---
 
